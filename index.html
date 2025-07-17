@@ -95,9 +95,16 @@
       font-size: 13px;
       color: #777;
     }
+
+    .fb-login-button {
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
+  <!-- Facebook SDK root -->
+  <div id="fb-root"></div>
+
   <div class="container">
     <div class="tab">
       <button class="tablinks active" onclick="openTab(event, 'login')">Login</button>
@@ -108,6 +115,16 @@
       <input type="email" placeholder="Email" required />
       <input type="password" placeholder="Password" required />
       <button class="submit-btn">Login</button>
+      <!-- Facebook Login Button -->
+      <div class="fb-login-button"
+           data-width=""
+           data-size="medium"
+           data-button-type="continue_with"
+           data-layout="default"
+           data-auto-logout-link="false"
+           data-use-continue-as="true"
+           data-onlogin="checkLoginState();">
+      </div>
     </form>
 
     <form id="signup">
@@ -122,6 +139,7 @@
     </div>
   </div>
 
+  <!-- Tab Switch Script -->
   <script>
     function openTab(evt, tabName) {
       const tabs = document.querySelectorAll("form");
@@ -132,6 +150,36 @@
 
       document.getElementById(tabName).classList.add("active");
       evt.currentTarget.classList.add("active");
+    }
+  </script>
+
+  <!-- Facebook SDK -->
+  <script>
+    window.fbAsyncInit = function() {
+      FB.init({
+        appId      : 'YOUR_APP_ID_HERE', // Replace with your actual Facebook App ID
+        cookie     : true,
+        xfbml      : true,
+        version    : 'v19.0' // Replace with your API version if needed
+      });
+
+      FB.AppEvents.logPageView();
+    };
+
+    (function(d, s, id){
+      var js, fjs = d.getElementsByTagName(s)[0];
+      if (d.getElementById(id)) return;
+      js = d.createElement(s); js.id = id;
+      js.src = "https://connect.facebook.net/en_US/sdk.js";
+      fjs.parentNode.insertBefore(js, fjs);
+    }(document, 'script', 'facebook-jssdk'));
+
+    // Optional: Callback when Facebook login completes
+    function checkLoginState() {
+      FB.getLoginStatus(function(response) {
+        console.log("FB Login Response:", response);
+        // You can handle your app's login logic here
+      });
     }
   </script>
 </body>
