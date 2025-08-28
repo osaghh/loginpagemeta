@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  />
+  <title>IG Saver — Download Instagram Media</title>
+  <link rel="stylesheet" href="styles.css" />
+  <!-- JSZip for "Download All" -->
+  <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <header class="wrap">
+    <h1>IG Saver</h1>
+    <p class="tagline">Download publicly available Instagram posts & Reels.</p>
+  </header>
+
+  <main class="wrap">
+    <form id="resolve-form" class="card">
+      <label for="url">Paste Instagram URL</label>
+      <div class="row">
+        <input id="url" name="url" type="url" placeholder="https://www.instagram.com/reel/..." required />
+        <button id="resolve-btn" type="submit">Fetch</button>
+      </div>
+      <small class="muted">
+        Tip: Works with public posts/Reels. Private content & Stories are not supported.
+      </small>
+    </form>
+
+    <section id="result" class="hidden">
+      <div class="result-head">
+        <div>
+          <h2 id="post-title"></h2>
+          <p class="muted" id="post-meta"></p>
+        </div>
+        <div>
+          <button id="download-all" class="ghost">Download All (ZIP)</button>
+        </div>
+      </div>
+
+      <div id="gallery" class="grid"></div>
+    </section>
+
+    <section class="legal card">
+      <h3>Legal & Fair Use</h3>
+      <p>
+        This tool helps download publicly available Instagram content.
+        Only download content you own or have permission to use. Respect intellectual property,
+        creator rights, and Instagram’s <a href="https://help.instagram.com/581066165581870" target="_blank" rel="noopener">Terms</a>.
+      </p>
+    </section>
+  </main>
+
+  <footer class="wrap center muted">
+    <p>Built for education & personal use.</p>
+  </footer>
+</body>
+</html>
