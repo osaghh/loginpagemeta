@@ -1,67 +1,64 @@
-async function scrapeInstagramMedia(targetUrl) {
-  const browser = await puppeteer.launch({
-    headless: 'new',
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-gpu',
-      '--no-zygote',
-      '--disable-dev-shm-usage'
-    ]
-  });
+const express = require("express");
+const puppeteer = require("puppeteer");
+const chromium = require("@sparticuz/chromium");
+const path = require("path");
 
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Serve frontend
+app.use(express.static(path.join(__dirname, "public")));
+
+// Helper: scrape media
+async function scrapeInstagram(url) {
+  let browser;
   try {
+    browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    });
+
     const page = await browser.newPage();
+    await page.goto(url, { waitUntil: "networkidle2", timeout: 60000 });
 
-    // Pretend to be a real Chrome browser
-    await page.setUserAgent(
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
-      '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
-    );
-
-    // Avoid IG’s login wall as much as possible
-    await page.setExtraHTTPHeaders({
-      'Accept-Language': 'en-US,en;q=0.9'
+    // Look for image or video tags
+    const data = await page.evaluate(() => {
+      const video = document.querySelector("video");
+      if (video && video.src) {
+        return { type: "video", url: video.src };
+      }
+      const img = document.querySelector("img");
+      if (img && img.src) {
+        return { type: "image", url: img.src };
+      }
+      return null;
     });
 
-    await page.goto(targetUrl, { waitUntil: 'networkidle2', timeout: 60000 });
-
-    // First, try OpenGraph tags (Instagram still sets these for public posts)
-    const meta = await page.evaluate(() => {
-      const pick = (prop) =>
-        document.querySelector(`meta[property="${prop}"]`)?.getAttribute('content') || null;
-
-      return {
-        title: pick('og:title'),
-        description: pick('og:description'),
-        image: pick('og:image'),
-        video: pick('og:video') || pick('og:video:secure_url')
-      };
-    });
-
-    const media = [];
-    if (meta.video) media.push({ type: 'video', url: meta.video });
-    if (meta.image) media.push({ type: 'image', url: meta.image });
-
-    // If OG tags fail, scan the HTML for .jpg / .mp4
-    if (media.length === 0) {
-      const html = await page.content();
-
-      const jpgs = [...html.matchAll(/https:\/\/[^"']+\.jpg/gi)].map(m => m[0]);
-      const mp4s = [...html.matchAll(/https:\/\/[^"']+\.mp4/gi)].map(m => m[0]);
-
-      for (const j of jpgs) media.push({ type: 'image', url: j });
-      for (const v of mp4s) media.push({ type: 'video', url: v });
-    }
-
-    return {
-      ok: media.length > 0,
-      title: meta.title || 'Instagram',
-      description: meta.description || '',
-      count: media.length,
-      media
-    };
+    return data;
+  } catch (err) {
+    console.error("Scraping failed:", err);
+    return null;
   } finally {
-    await browser.close();
+    if (browser) await browser.close();
   }
 }
+
+// API route
+app.get("/api/download", async (req, res) => {
+  const { url } = req.query;
+  if (!url) return res.status(400).json({ error: "Missing Instagram URL" });
+
+  const result = await scrapeInstagram(url);
+  if (!result) {
+    return res.status(500).json({ error: "Could not fetch media" });
+  }
+
+  res.json(result);
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
