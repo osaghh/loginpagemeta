@@ -1,64 +1,40 @@
-const express = require("express");
-const puppeteer = require("puppeteer");
-const chromium = require("@sparticuz/chromium");
-const path = require("path");
+import express from "express";
+import puppeteer from "puppeteer";
+import chromium from "@sparticuz/chromium";
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
-// Serve frontend
-app.use(express.static(path.join(__dirname, "public")));
+app.get("/", (req, res) => {
+  res.send("✅ IG Downloader is running!");
+});
 
-// Helper: scrape media
-async function scrapeInstagram(url) {
-  let browser;
+app.get("/download", async (req, res) => {
+  const url = req.query.url;
+  if (!url) return res.status(400).send("Missing ?url=");
+
   try {
-    browser = await puppeteer.launch({
+    const browser = await puppeteer.launch({
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
+      headless: chromium.headless
     });
 
     const page = await browser.newPage();
-    await page.goto(url, { waitUntil: "networkidle2", timeout: 60000 });
+    await page.goto(url, { waitUntil: "networkidle2" });
 
-    // Look for image or video tags
-    const data = await page.evaluate(() => {
-      const video = document.querySelector("video");
-      if (video && video.src) {
-        return { type: "video", url: video.src };
-      }
-      const img = document.querySelector("img");
-      if (img && img.src) {
-        return { type: "image", url: img.src };
-      }
-      return null;
-    });
+    const title = await page.title();
+    await browser.close();
 
-    return data;
+    res.json({ title });
   } catch (err) {
-    console.error("Scraping failed:", err);
-    return null;
-  } finally {
-    if (browser) await browser.close();
+    console.error(err);
+    res.status(500).send("Failed to fetch content");
   }
-}
-
-// API route
-app.get("/api/download", async (req, res) => {
-  const { url } = req.query;
-  if (!url) return res.status(400).json({ error: "Missing Instagram URL" });
-
-  const result = await scrapeInstagram(url);
-  if (!result) {
-    return res.status(500).json({ error: "Could not fetch media" });
-  }
-
-  res.json(result);
 });
 
-// Start server
+// 🚨 Must use Render’s PORT
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
